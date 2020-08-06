@@ -940,8 +940,15 @@ make_v:
 
 Value Eval::evaluate(const Position& pos) {
 
-  if (Eval::useNNUE)
-      return NNUE::evaluate(pos);
+ if (Eval::useNNUE) 
+  {
+    Value score = NNUE::evaluate(pos);
+
+    // Damp down the evaluation linearly when shuffling
+    score = score * (100 - pos.rule50_count()) / 100;
+
+    return score;
+  }
   else
       return Evaluation<NO_TRACE>(pos).value();
 }
