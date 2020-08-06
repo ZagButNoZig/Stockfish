@@ -110,6 +110,7 @@ namespace {
   constexpr Value LazyThreshold1  = Value(1400);
   constexpr Value LazyThreshold2  = Value(1300);
   constexpr Value SpaceThreshold = Value(12222);
+  constexpr Value NNUEThreshold   =  Value(500);
 
   // KingAttackWeights[PieceType] contains king attack weights by piece type
   constexpr int KingAttackWeights[PIECE_TYPE_NB] = { 0, 0, 81, 52, 44, 10 };
@@ -940,17 +941,21 @@ make_v:
 
 Value Eval::evaluate(const Position& pos) {
 
- if (Eval::useNNUE) 
+  if (Eval::useNNUE)
   {
-    Value score = NNUE::evaluate(pos);
+      Value balance = pos.non_pawn_material(WHITE) - pos.non_pawn_material(BLACK);
+      balance += 200 * (pos.count<PAWN>(WHITE) - pos.count<PAWN>(BLACK));
+      if (abs(balance) < NNUEThreshold)
+      {
+        Value score = NNUE::evaluate(pos);
 
-    // Damp down the evaluation linearly when shuffling
-    score = score * (100 - pos.rule50_count()) / 100;
+        // Damp down the evaluation linearly when shuffling
+        score = score * (100 - pos.rule50_count()) / 100;
 
-    return score;
+        return score;
+      }
   }
-  else
-      return Evaluation<NO_TRACE>(pos).value();
+  return Evaluation<NO_TRACE>(pos).value();
 }
 
 /// trace() is like evaluate(), but instead of returning a value, it returns
